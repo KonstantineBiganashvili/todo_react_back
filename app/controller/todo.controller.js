@@ -36,7 +36,7 @@ module.exports.editTodoById = async (req, res) => {
   const errorsArray = [];
   const validEdit = {};
 
-  if (!todoItem && !checked) {
+  if (!todoItem && !(String(checked) === 'true' || 'false')) {
     errorsArray.push('You must change at least one field!');
   }
 
@@ -49,17 +49,25 @@ module.exports.editTodoById = async (req, res) => {
       }
     }
 
-    if (checked) validEdit.checked = checked;
-  } else {
-    return res.status(422).send({ answer: errorsArray });
+    if (typeof checked !== 'undefined') {
+      if (typeof checked !== 'boolean') {
+        errorsArray.push('Checkbox must be a boolean');
+      } else {
+        validEdit.checked = checked;
+      }
+    }
   }
 
-  try {
-    const [change] = await Todo.update(validEdit, { where: { id } });
-    if (change) return await this.getTodo(req, res);
-    return res.status(404).send({ answer: 'Todo item does not exist!' });
-  } catch (error) {
-    return res.status(422).send({ answer: error });
+  if (!errorsArray.length) {
+    try {
+      const [change] = await Todo.update(validEdit, { where: { id } });
+      if (change) return await this.getTodo(req, res);
+      return res.status(404).send({ answer: 'Todo item does not exist!' });
+    } catch (error) {
+      return res.status(422).send({ answer: error });
+    }
+  } else {
+    return res.status(422).send({ answer: errorsArray });
   }
 };
 
